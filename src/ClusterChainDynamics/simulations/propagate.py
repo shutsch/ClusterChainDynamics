@@ -3,12 +3,54 @@ Module for propagating different types of compact objects in simulations.
 """
 
 import numpy as np
-import galpy.potential as galpo
 from scipy.integrate import solve_ivp
 from typing import Dict, Any, Optional, Tuple
 from functools import Partial
 
 from ..core import CompactObject, StarCluster, SelfPropellingMolecularCloud
+
+
+def _get_galpy_potential(potential_type: str) -> Any:
+    """
+    Retrieve a galpy potential object based on the specified type.
+    
+    Args:
+        potential_type (str): Name of the galpy potential to retrieve
+    
+    Returns:
+        Any: Galpy potential object
+    """
+    
+    try:
+        import galpy.potential as galpo
+    except ImportError: 
+        raise ImportError("If 'potential_func' is provieded as a string, it is assumed to refer to a potential in galpy, but galpy is not installed."
+                    "Please install it via 'pip install galpy'. Alternatively, provide a custom potential function.")
+    
+    potential_map = {
+        "MWPotential2014": galpo.MWPotential2014,
+        "NFWPotential": galpo.NFWPotential,
+        "HernquistPotential": galpo.HernquistPotential,
+    }
+    
+    if potential_type not in potential_map:
+        raise ValueError(f"Unknown potential type: {potential_type}. "
+                         f"Must be one of {list(potential_map.keys())}")
+    
+    potential = potential_map[potential_type]()
+    
+    def potential_callable(pos: np.ndarray) -> Tuple[float, float, float]:
+                # Calculate cylindrical radius
+        R = np.sqrt(pos[0]**2 + pos[1]**2)
+
+        # Gravitational acceleration from galpy potential
+        aR = potential.Rforce(R, pos[2])
+        az = potential.zforce(R, pos[2])
+        ax = aR * pos[0] / R if R > 0 else 0
+        ay = aR * pos[1] / R if R > 0 else 0
+        return ax, ay, az
+    
+    return  potential_callable
 
 
 def create_object(object_type: str, **kwargs) -> CompactObject:
@@ -55,7 +97,7 @@ def single_object_solve(
     t_span: Tuple[float, float],
     t_eval: np.ndarray,
     object_type: str,
-    potential_type: str
+    potential_func: str | callable
 ) -> Any:
     """
     Propagate a compact object under galactic potential and feedback.
@@ -71,12 +113,13 @@ def single_object_solve(
         Any: Solution object from solve_ivp integration
     """
     
-    potential = getattr(galpo, potential_type)()
+    if isinstance(potential_func, str):
+        potential_func = _get_galpy_potential(potential_func)
     
     compact_object = create_object(object_type, **initial_conditions)
     
     
-    def _propagate(t: float, pos:np.ndarray, _compact_object: CompactObject, _potential: Any) -> CompactObject:
+    def _propagate(t: float, pos:np.ndarray, _compact_object: CompactObject, _potential: callable) -> CompactObject:
         """
         Propagation function for the numerical integrator.
         
@@ -84,30 +127,22 @@ def single_object_solve(
             t (float): Current time
             pos (np.ndarray): Current position vector [x, y, z]
             _compact_object (CompactObject): Current object state
-            _potential (Any): Galactic potential object
+            _potential (callable): Galactic potential function
             
         Returns:
             CompactObject: Updated object state
         """
             
-        # Calculate cylindrical radius
-        R = np.sqrt(pos[0]**2 + pos[1]**2)
-
-        # Gravitational acceleration from galpy potential
-        aR = galpo.evaluateRforces(potential, R, pos[2])
-        az = galpo.evaluatezforces(potential, R, pos[2])
-        ax = aR * pos[0] / R if R > 0 else 0
-        ay = aR * pos[1] / R if R > 0 else 0
-        
+        ax, ay, az = _potential(pos[0], pos[1], pos[2])
         # Propagate the object
-        compact_object.propagate(
-            dt=t - compact_object.current_time,
+        _compact_object.propagate(
+            dt=t - _compact_object.current_time,
             a_g=np.array([ax, ay, az])
         )
         
         return compact_object.current_position
     
-    propagate = Partial(_propagate, _compact_object=compact_object, _potential=potential)
+    propagate = Partial(_propagate, _compact_object=compact_object, _potential=potential_func)
     
-    sol = solve_ivp(propagate, t_span, t_eval=t_eval, rtol=1e-8, atol=1e-10)
-    return sol
+    sol = solve_ivp(propagate, t_span, y0=initial_position, t_eval=t_eval, rtol=1e-8, atol=1e-10)
+    return sol, compact_object
