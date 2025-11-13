@@ -73,21 +73,22 @@ def single_object_solve(
     
     potential = getattr(galpo, potential_type)()
     
+    compact_object = create_object(object_type, **initial_conditions)
     
-    def _propagate(t: float, state: CompactObject, potential: Any) -> CompactObject:
+    
+    def _propagate(t: float, pos:np.ndarray, _compact_object: CompactObject, _potential: Any) -> CompactObject:
         """
         Propagation function for the numerical integrator.
         
         Args:
             t (float): Current time
-            state (CompactObject): Current object state
-            potential (Any): Galactic potential object
+            pos (np.ndarray): Current position vector [x, y, z]
+            _compact_object (CompactObject): Current object state
+            _potential (Any): Galactic potential object
             
         Returns:
             CompactObject: Updated object state
         """
-        pos = state.current_position
-        vel = state.current_velocity
             
         # Calculate cylindrical radius
         R = np.sqrt(pos[0]**2 + pos[1]**2)
@@ -99,14 +100,14 @@ def single_object_solve(
         ay = aR * pos[1] / R if R > 0 else 0
         
         # Propagate the object
-        state.propagate(
-            dt=t - state.current_time,
+        compact_object.propagate(
+            dt=t - compact_object.current_time,
             a_g=np.array([ax, ay, az])
         )
         
-        return state
+        return compact_object.current_position
     
-    propagate = Partial(_propagate, potential=potential)
+    propagate = Partial(_propagate, _compact_object=compact_object, _potential=potential)
     
     sol = solve_ivp(propagate, t_span, t_eval=t_eval, rtol=1e-8, atol=1e-10)
     return sol
