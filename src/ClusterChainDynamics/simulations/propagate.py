@@ -93,6 +93,7 @@ def create_object(object_type: str, **kwargs) -> CompactObject:
 
 
 def single_object_solve(
+    initial_position: np.ndarray,
     initial_conditions: Dict[str, Any],
     t_span: Tuple[float, float],
     t_eval: np.ndarray,
@@ -116,7 +117,7 @@ def single_object_solve(
     if isinstance(potential_func, str):
         potential_func = _get_galpy_potential(potential_func)
     
-    compact_object = create_object(object_type, **initial_conditions)
+    compact_object = create_object(object_type, **initial_conditions, initial_position=initial_position)
     
     
     def _propagate(t: float, pos:np.ndarray, _compact_object: CompactObject, _potential: callable) -> CompactObject:
