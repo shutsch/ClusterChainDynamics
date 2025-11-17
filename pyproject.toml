@@ -16,6 +16,8 @@ dependencies = [
     "scipy>=1.7",
     "pytest>=7.0",
     "matplotlib>=3.10.7",
+    "galpy>=1.11.1",
+    "ipython>=8.37.0",
 ]
 classifiers = [
     "Programming Language :: Python :: 3",

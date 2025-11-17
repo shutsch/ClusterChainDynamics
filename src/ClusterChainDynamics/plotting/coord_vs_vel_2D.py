@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def plot_coord_vs_vel_2D(positions, velocities, index, path, title="", xlabel=None, ylabel=None):
+def plot_coord_vs_vel_2D(positions, velocities, time, index, path,  name, title="", xlabel=None, ylabel=None):
     """
     Plots a 2D scatter plot of a specified coordinate vs. a specified velocity component.
 
@@ -19,10 +19,11 @@ def plot_coord_vs_vel_2D(positions, velocities, index, path, title="", xlabel=No
     coord_index = label_map.get(index, f'coord{index}')
     
     plt.figure(figsize=(8, 6))
-    plt.scatter(positions[:, index], velocities[:, index], alpha=0.7)
+    plt.scatter(positions[:, index], velocities[:, index], c=time, alpha=0.7, cmap='magma')
     plt.title(title)
     plt.xlabel(xlabel if xlabel else f"Position {coord_index}")
     plt.ylabel(ylabel if ylabel else f"Velocity {coord_index}")
     plt.grid(True)
-    plt.savefig(path + f"coord{index}_vs_vel{index}.png")
+    plt.tight_layout()
+    plt.savefig(path + f"{name}_coord{index}_vs_vel{index}.png")
     plt.close()

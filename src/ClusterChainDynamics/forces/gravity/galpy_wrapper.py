@@ -23,21 +23,19 @@ def _get_galpy_potential(potential_type: str) -> Any:
         return None
     
     potential_map = {
-        "MWPotential2014": galpo.MWPotential2014,
+        "MiyamotoNagai": galpo.MiyamotoNagaiPotential,
         "NFWPotential": galpo.NFWPotential,
         "HernquistPotential": galpo.HernquistPotential,
     }
     
     if potential_type not in potential_map:
-        raise ValueError(f"Unknown potential type: {potential_type}. "
-                         f"Must be one of {list(potential_map.keys())}")
+        return None
     
     potential = potential_map[potential_type]()
     
     def potential_callable(pos: np.ndarray) -> Tuple[float, float, float]:
                 # Calculate cylindrical radius
         R = np.sqrt(pos[0]**2 + pos[1]**2)
-
         # Gravitational acceleration from galpy potential
         aR = potential.Rforce(R, pos[2])
         az = potential.zforce(R, pos[2])

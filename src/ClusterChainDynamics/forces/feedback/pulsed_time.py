@@ -25,5 +25,5 @@ def pulsed_feedback(t:float, pos: np.ndarray, a_0: np.ndarray, t_pulse: np.ndarr
         The feedback acceleration vector.
     """
     
-    all_a = a_0  * np.exp(-(t - t_pulse)**2/sigma_t*2)
-    return sum(all_a, axis=1)
+    all_a = np.array(a_0).T  * np.exp(-(t - t_pulse)**2/sigma_t*2)
+    return np.sum(all_a, axis=1)

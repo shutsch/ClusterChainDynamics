@@ -34,7 +34,8 @@ def propagate(t: float, pos_and_vel: np.ndarray, calculate_a_g: np.ndarray | Cal
     # Calculate gravitational acceleration
     a_g = calculate_a_g(pos)
 
-    # Combine all accelerations
+    # Combine all 
+    print(a_g, a_f)
     a = a_g + a_f
     
     return np.concatenate((vel, a))
@@ -70,11 +71,11 @@ def single_object_solve(
         if _potential_func is None:
             try: 
                 potential_func = getattr(gravity, potential_func) 
-            except ImportError:
+            except AttributeError:
                 raise ImportError(f"single_object_solve: potential provided ('{potential_func}') not in galpy or this libary")
             
             if potential_params is not None:
-                potential_func = partial(potential_func, potential_params)
+                potential_func = partial(potential_func, **potential_params)
         else:
             potential_func = _potential_func
             
@@ -83,9 +84,8 @@ def single_object_solve(
         try: 
             feedback_func = getattr(feedback, feedback_func) 
         except ImportError:
-            raise ImportError(f"single_object_solve: feedback model provided ('{feedback_func}') not part of this library")
-        
-        feedback_func = partial(feedback_func, feedback_params)
+            raise ImportError(f"single_object_solve: feedback model provided ('{feedback_func}') not part of this library")       
+        feedback_func = partial(feedback_func, **feedback_params)
 
     
     
